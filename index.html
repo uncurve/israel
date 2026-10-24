@@ -69,14 +69,14 @@ const DAYS=[
  {date:"2026-10-28",label:"Wed, Oct 28",loc:"Jerusalem",lat:31.7683,lon:35.2137,desc:"Arrival day",sleep:"YMCA Three Arches, Jerusalem"},
  {date:"2026-10-29",label:"Thu, Oct 29",loc:"Jerusalem",lat:31.7683,lon:35.2137,desc:"Jerusalem Old City",sleep:"YMCA Three Arches, Jerusalem"},
  {date:"2026-10-30",label:"Fri, Oct 30",loc:"Jerusalem",lat:31.7683,lon:35.2137,desc:"Jerusalem Old City",sleep:"YMCA Three Arches, Jerusalem"},
- {date:"2026-10-31",label:"Sat, Oct 31",loc:"Tiberias",lat:32.7959,lon:35.5309,desc:"Travel Jerusalem → Tiberias (via Caesarea & Mount Carmel)",sleep:"Leonardo Hotel Tiberias"},
+ {date:"2026-10-31",label:"Sat, Oct 31",loc:"Tiberias",lat:32.7959,lon:35.5309,desc:"Travel Jerusalem → Tiberias (via Caesarea, Mount Carmel & Tel Megiddo)",sleep:"Leonardo Hotel Tiberias"},
  {date:"2026-11-01",label:"Sun, Nov 1",loc:"Tiberias · Sea of Galilee",lat:32.7959,lon:35.5309,desc:"Sea of Galilee Area",sleep:"Leonardo Hotel Tiberias"},
  {date:"2026-11-02",label:"Mon, Nov 2",loc:"Nazareth",lat:32.7021,lon:35.2978,desc:"Cana and Nazareth",sleep:"Leonardo Hotel Tiberias"},
- {date:"2026-11-03",label:"Tue, Nov 3",loc:"Ein Bokek · Dead Sea",lat:31.2006,lon:35.3625,desc:"Galilee → Dead Sea travel · Baptism Day (Qasr el Yahud)",sleep:"Ein Bokek"},
+ {date:"2026-11-03",label:"Tue, Nov 3",loc:"Ein Bokek · Dead Sea",lat:31.2006,lon:35.3625,desc:"Galilee → Dead Sea travel (via Caesarea Philippi) · Baptism Day (Qasr el Yahud)",sleep:"Ein Bokek"},
  {date:"2026-11-04",label:"Wed, Nov 4",loc:"Ein Bokek · Dead Sea",lat:31.2006,lon:35.3625,desc:"Dead Sea & Masada",sleep:"YMCA Three Arches, Jerusalem"},
  {date:"2026-11-05",label:"Thu, Nov 5",loc:"Bethlehem",lat:31.7054,lon:35.2024,desc:"Cave of the Patriarchs & Bethlehem",sleep:"YMCA Three Arches, Jerusalem"},
  {date:"2026-11-06",label:"Fri, Nov 6",loc:"Jerusalem",lat:31.7683,lon:35.2137,desc:"Flex Day @ Old City",sleep:"YMCA Three Arches, Jerusalem"},
- {date:"2026-11-07",label:"Sat, Nov 7",loc:"Tel Aviv–Jaffa",lat:32.0540,lon:34.7560,desc:"Israel Museum, then Jaffa · departure evening (Ben Gurion Airport)",sleep:"Departure day"},
+ {date:"2026-11-07",label:"Sat, Nov 7",loc:"Tel Aviv–Jaffa",lat:32.0540,lon:34.7560,desc:"Garden Tomb & Israel Museum (Jerusalem), then Jaffa · departure evening (Ben Gurion Airport)",sleep:"Departure day"},
  {date:"2026-11-08",label:"Sun, Nov 8",loc:"San Francisco",lat:37.7749,lon:-122.4194,desc:"Return to SFO (Flight LY 49, departs TLV 1:05 AM)",sleep:"Home"}
 ];
 const WMO={0:"Clear sky",1:"Mainly clear",2:"Partly cloudy",3:"Overcast",45:"Fog",48:"Fog",51:"Light drizzle",53:"Drizzle",55:"Drizzle",56:"Freezing drizzle",57:"Freezing drizzle",61:"Light rain",63:"Rain",65:"Heavy rain",66:"Freezing rain",67:"Freezing rain",71:"Light snow",73:"Snow",75:"Heavy snow",77:"Snow grains",80:"Light showers",81:"Showers",82:"Violent showers",85:"Snow showers",86:"Snow showers",95:"Thunderstorm",96:"Thunderstorm with hail",99:"Thunderstorm with hail"};
@@ -87,6 +87,11 @@ const conv=c=>unit==="F"?Math.round(c*9/5+32):Math.round(c);
 const todayIn=tz=>{try{return new Intl.DateTimeFormat("en-CA",{timeZone:tz,year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());}catch(e){return new Date().toISOString().slice(0,10);}};
 function isPast(d){const tz=(DATA[d.date]&&DATA[d.date].tz)||(d.loc==="San Francisco"?"America/Los_Angeles":"Asia/Jerusalem");return d.date<todayIn(tz);}
 function isToday(d){const tz=(DATA[d.date]&&DATA[d.date].tz)||(d.loc==="San Francisco"?"America/Los_Angeles":"Asia/Jerusalem");return d.date===todayIn(tz);}
+/* UTC offset (minutes) of tz at instant ms */
+function tzOffsetMin(tz,ms){const p={}; new Intl.DateTimeFormat("en-US",{timeZone:tz,hourCycle:"h23",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}).formatToParts(new Date(ms)).forEach(x=>{p[x.type]=x.value;}); return (Date.UTC(+p.year,p.month-1,+p.day,+p.hour,+p.minute)-ms)/60000;}
+/* Open-Meteo stamps the whole range with TODAY's offset (apiOff seconds), so dates past a DST change
+   (Israel Oct 25, US Nov 1) come back an hour off. Re-express "YYYY-MM-DDTHH:MM" in tz's real offset for that date. */
+function fixLocal(s,tz,apiOff){const ms=Date.parse(s+":00Z")-apiOff*1000; try{return new Date(ms+tzOffsetMin(tz,ms)*60000).toISOString().slice(0,16);}catch(e){return s;}}
 </script>
 <script>
 "use strict";
@@ -114,11 +119,13 @@ async function load(){
   let all=await r.json(); if(!Array.isArray(all)) all=[all];
   all.forEach((j,n)=>{
    const d=pts[n]; if(!d||!j||!j.daily) return;
+   const tz=j.timezone, off=j.utc_offset_seconds||0, fix=s=>s?fixLocal(s,tz,off):"";
+   const htimes=(j.hourly.time||[]).map(fix);
    (j.daily.time||[]).forEach((date,i)=>{
      const key=d.lat+","+d.lon;
      DAYS.filter(x=>x.lat+","+x.lon===key&&x.date===date).forEach(x=>{
-       const hrs=[]; (j.hourly.time||[]).forEach((t,k)=>{ if(t.slice(0,10)===date) hrs.push({h:+t.slice(11,13),temp:j.hourly.temperature_2m[k],rain:j.hourly.precipitation_probability[k]}); });
-       fresh[date+key]={tz:j.timezone,daily:{hi:j.daily.temperature_2m_max[i],lo:j.daily.temperature_2m_min[i],rain:j.daily.precipitation_probability_max[i],code:j.daily.weather_code[i],wind:j.daily.wind_speed_10m_max[i],sunrise:(j.daily.sunrise[i]||"").slice(11,16),sunset:(j.daily.sunset[i]||"").slice(11,16)},hourly:hrs};
+       const hrs=[]; htimes.forEach((t,k)=>{ if(t.slice(0,10)===date) hrs.push({h:+t.slice(11,13),temp:j.hourly.temperature_2m[k],rain:j.hourly.precipitation_probability[k]}); });
+       fresh[date+key]={tz:tz,daily:{hi:j.daily.temperature_2m_max[i],lo:j.daily.temperature_2m_min[i],rain:j.daily.precipitation_probability_max[i],code:j.daily.weather_code[i],wind:j.daily.wind_speed_10m_max[i],sunrise:fix(j.daily.sunrise[i]).slice(11,16),sunset:fix(j.daily.sunset[i]).slice(11,16)},hourly:hrs};
      });
    });
   });
