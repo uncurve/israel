@@ -168,11 +168,18 @@ function wettest(e){let best=null; e.hourly.forEach(h=>{if(h.rain!=null&&(!best|
 </script>
 <script>
 "use strict";
-function drawAll(){document.querySelectorAll("canvas[data-date]").forEach(cv=>{ if(cv.offsetParent!==null) drawChart(cv); });}
+/* redraw a chart whenever its displayed size changes (layout settling, rotation, expanding a past day),
+   not just on window resize; otherwise the old bitmap gets stretched to the new size */
+const RO=typeof ResizeObserver!=="undefined"?new ResizeObserver(es=>es.forEach(en=>drawChart(en.target))):null;
+function drawAll(){
+ if(RO) RO.disconnect();
+ document.querySelectorAll("canvas[data-date]").forEach(cv=>{ if(RO) RO.observe(cv); else if(cv.offsetParent!==null) drawChart(cv); });
+}
 function drawChart(cv){
  const e=DATA[cv.dataset.date]; if(!e||!e.hourly.length) return;
  /* size the backing store to the displayed size × devicePixelRatio so text isn't stretched or blurry */
  const box=cv.getBoundingClientRect(), dpr=window.devicePixelRatio||1, W=box.width, H=box.height;
+ if(!W||!H) return; /* hidden (collapsed past day) */
  cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr);
  const ctx=cv.getContext("2d"), L=40, R=42, T=10, B=24, iw=W-L-R, ih=H-T-B;
  ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,W,H);
