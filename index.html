@@ -161,7 +161,7 @@ function bodyHTML(d,e){
  const dl=e.daily;
  return "<div><span class='big'>"+conv(dl.hi)+"° <span style='color:var(--muted);font-size:20px'>/ "+conv(dl.lo)+"°</span></span> &nbsp;"+EMOJI(dl.code)+" "+(WMO[dl.code]||"")+"</div>"+
  "<div class='meta'><span>💧 Rain chance (max): <b>"+(dl.rain==null?"—":dl.rain+"%")+"</b></span><span>💨 Wind up to: <b>"+(dl.wind==null?"—":Math.round(dl.wind)+" km/h")+"</b></span><span>🌅 Sunrise: <b>"+(dl.sunrise||"—")+"</b></span><span>🌇 Sunset: <b>"+(dl.sunset||"—")+"</b></span></div>"+
- "<canvas data-date='"+d.date+"' width='1040' height='380'></canvas>"+
+ "<canvas data-date='"+d.date+"'></canvas>"+
  "<div class='chartnote'>Hour by hour, 12a–11p local time at "+d.loc+": blue bars = rain probability (right axis, 0–100%), orange line = temperature (left axis, °"+unit+"). Wettest hour: <b>"+wettest(e)+"</b></div>";
 }
 function wettest(e){let best=null; e.hourly.forEach(h=>{if(h.rain!=null&&(!best||h.rain>best.rain)) best=h;}); if(!best||best.rain==null) return "—"; const hr=best.h===0?"12a":best.h<12?best.h+"a":best.h===12?"12p":(best.h-12)+"p"; return best.rain+"% around "+hr;}
@@ -171,24 +171,33 @@ function wettest(e){let best=null; e.hourly.forEach(h=>{if(h.rain!=null&&(!best|
 function drawAll(){document.querySelectorAll("canvas[data-date]").forEach(cv=>{ if(cv.offsetParent!==null) drawChart(cv); });}
 function drawChart(cv){
  const e=DATA[cv.dataset.date]; if(!e||!e.hourly.length) return;
- const ctx=cv.getContext("2d"), W=cv.width, H=cv.height, L=64, R=64, T=26, B=44, iw=W-L-R, ih=H-T-B;
- ctx.clearRect(0,0,W,H); ctx.font="22px sans-serif";
- const temps=e.hourly.map(h=>conv(h.temp)); let mn=Math.min.apply(null,temps), mx=Math.max.apply(null,temps); if(mx-mn<6){mx+=3;mn-=3;}
+ /* size the backing store to the displayed size × devicePixelRatio so text isn't stretched or blurry */
+ const box=cv.getBoundingClientRect(), dpr=window.devicePixelRatio||1, W=box.width, H=box.height;
+ cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr);
+ const ctx=cv.getContext("2d"), L=40, R=42, T=10, B=24, iw=W-L-R, ih=H-T-B;
+ ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,W,H);
+ ctx.font="12px -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif"; ctx.textBaseline="middle";
+ /* unrounded temps for a smooth line; 4 whole-degree steps so temp gridlines line up with 0/25/50/75/100% */
+ const temps=e.hourly.map(h=>unit==="F"?h.temp*9/5+32:h.temp);
+ const tmin=Math.min.apply(null,temps), tmax=Math.max.apply(null,temps);
+ let step=[1,2,3,4,5,10,15,20].find(s=>Math.floor(tmin/s)*s+4*s>=tmax)||25;
+ const mn=Math.floor(tmin/step)*step, mx=mn+4*step;
  /* gridlines + left (temp) labels */
  ctx.strokeStyle="#e4e7ec"; ctx.fillStyle="#667085"; ctx.textAlign="right";
- for(let i=0;i<=4;i++){const v=mn+(mx-mn)*i/4, y=T+ih-ih*i/4; ctx.beginPath(); ctx.moveTo(L,y); ctx.lineTo(W-R,y); ctx.stroke(); ctx.fillText(Math.round(v)+"°",L-8,y+7);}
+ for(let i=0;i<=4;i++){const y=Math.round(T+ih-ih*i/4)+.5; ctx.beginPath(); ctx.moveTo(L,y); ctx.lineTo(W-R,y); ctx.stroke(); ctx.fillText((mn+step*i)+"°",L-6,y);}
  /* right (rain %) labels */
- ctx.textAlign="left"; for(let i=0;i<=4;i++){const y=T+ih-ih*i/4; ctx.fillText((i*25)+"%",W-R+8,y+7);}
+ ctx.textAlign="left"; for(let i=0;i<=4;i++){const y=Math.round(T+ih-ih*i/4)+.5; ctx.fillText((i*25)+"%",W-R+6,y);}
  /* rain bars */
  const bw=iw/24; ctx.fillStyle="#3b82f6";
- e.hourly.forEach(h=>{ if(h.rain==null) return; const bh=ih*h.rain/100; ctx.globalAlpha=.75; ctx.fillRect(L+h.h*bw+2, T+ih-bh, bw-4, bh); ctx.globalAlpha=1;});
+ const gap=Math.max(1,Math.min(3,bw*.15));
+ e.hourly.forEach(h=>{ if(h.rain==null) return; const bh=ih*h.rain/100; ctx.globalAlpha=.75; ctx.fillRect(L+h.h*bw+gap, T+ih-bh, bw-2*gap, bh); ctx.globalAlpha=1;});
  /* x labels */
  ctx.fillStyle="#667085"; ctx.textAlign="center";
- [[0,"12a"],[6,"6a"],[12,"12p"],[18,"6p"],[23,"11p"]].forEach(p=>{ctx.fillText(p[1],L+p[0]*bw+bw/2,H-12);});
+ [[0,"12a"],[6,"6a"],[12,"12p"],[18,"6p"],[23,"11p"]].forEach(p=>{ctx.fillText(p[1],L+p[0]*bw+bw/2,H-B/2+2);});
  /* temp line */
- ctx.strokeStyle="#f59e0b"; ctx.lineWidth=3.5; ctx.beginPath();
+ ctx.strokeStyle="#f59e0b"; ctx.lineWidth=2.5; ctx.lineJoin="round"; ctx.lineCap="round"; ctx.beginPath();
  e.hourly.forEach((h,i)=>{const x=L+h.h*bw+bw/2, y=T+ih-(temps[i]-mn)/(mx-mn)*ih; i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}); ctx.stroke();
- ctx.fillStyle="#b45309"; e.hourly.forEach((h,i)=>{ if(h.h%3===0){const x=L+h.h*bw+bw/2, y=T+ih-(temps[i]-mn)/(mx-mn)*ih; ctx.beginPath(); ctx.arc(x,y,4.5,0,7); ctx.fill();}});
+ ctx.fillStyle="#b45309"; e.hourly.forEach((h,i)=>{ if(h.h%3===0){const x=L+h.h*bw+bw/2, y=T+ih-(temps[i]-mn)/(mx-mn)*ih; ctx.beginPath(); ctx.arc(x,y,3,0,7); ctx.fill();}});
  ctx.lineWidth=1;
 }
 $("btnF").onclick=()=>{unit="F"; $("btnF").classList.add("active"); $("btnC").classList.remove("active"); render();};
