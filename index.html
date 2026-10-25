@@ -61,7 +61,7 @@ a{color:var(--accent)}
 <div class="err" id="err"></div>
 <div class="strip" id="strip"></div>
 <div id="cards"></div>
-<footer>Weather: <a href="https://open-meteo.com/">Open-Meteo</a> (free, no account or API key). This static page fetches fresh weather in your browser every time you open it, and again every 12 hours if you leave it open. Dates before today are greyed out and collapsed — tap one to reopen it.</footer>
+<footer>Weather: <a href="https://open-meteo.com/">Open-Meteo</a> (free, no account or API key). This static page fetches fresh weather in your browser when you open it (reusing the saved copy if it's under a minute old), and again every 12 hours if you leave it open. Dates before today are greyed out and collapsed — tap one to reopen it.</footer>
 </div>
 <script>
 "use strict";
@@ -114,9 +114,23 @@ function fixLocal(s,tz,apiOff){const ms=Date.parse(s+":00Z")-apiOff*1000; try{re
 </script>
 <script>
 "use strict";
+/* The last fetch is kept in localStorage (a cookie is too small for this data), so reloading
+   within MIN_AGE reuses it instead of hitting Open-Meteo again. Stored keyed by date + lat,lon
+   (not stop index) so it stays valid if the itinerary's stops change. */
+const CACHE_KEY="weather-cache-v1", MIN_AGE=60*1000;
+function readCache(){try{const c=JSON.parse(localStorage.getItem(CACHE_KEY)); return c&&c.ts&&c.fresh?c:null;}catch(e){return null;}}
+function writeCache(fresh){try{localStorage.setItem(CACHE_KEY,JSON.stringify({ts:Date.now(),fresh:fresh}));}catch(e){}}
+function byStop(fresh){const byDate={}; DAYS.forEach(d=>d.stops.forEach((s,k)=>{const v=fresh[d.date+s.lat+","+s.lon]; if(v) byDate[d.date+"|"+k]=v;})); return byDate;}
 async function load(){
  $("err").style.display="none";
+ const cached=readCache();
+ if(cached&&!Object.keys(DATA).length) DATA=byStop(cached.fresh);
  render();
+ if(cached&&Date.now()-cached.ts<MIN_AGE){
+  const wait=Math.ceil((MIN_AGE-(Date.now()-cached.ts))/1000);
+  $("status").textContent="Updated "+new Date(cached.ts).toLocaleString()+" · Source: Open-Meteo (saved; can refresh again in "+wait+"s)";
+  return;
+ }
  $("status").textContent="Loading live weather from Open-Meteo…";
  const locs={}; DAYS.forEach(d=>d.stops.forEach(s=>{locs[s.lat+","+s.lon]=s;}));
  const pts=Object.values(locs);
@@ -147,13 +161,13 @@ async function load(){
    });
   });
   /* re-key by date + stop index */
-  const byDate={}; DAYS.forEach(d=>d.stops.forEach((s,k)=>{const v=fresh[d.date+s.lat+","+s.lon]; if(v) byDate[d.date+"|"+k]=v;}));
+  const byDate=byStop(fresh);
   if(!Object.keys(byDate).length) throw new Error("no live data returned");
-  DATA=byDate;
+  DATA=byDate; writeCache(fresh);
   render();
   $("status").textContent="Updated "+new Date().toLocaleString()+" · Source: Open-Meteo (live)";
  }catch(e){
-   /* keep whatever live data we already have (e.g. from an earlier load) */
+   /* keep whatever live data we already have (an earlier load in this tab, or the saved copy) */
    render();
    $("err").textContent="Live weather could not be fetched from Open-Meteo ("+e.message+"). Check your connection and tap Refresh weather to try again."+(Object.keys(DATA).length?" Showing the last forecast loaded in this tab.":"");
    $("err").style.display="block"; $("status").textContent="Live weather unavailable";
