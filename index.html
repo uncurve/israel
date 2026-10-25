@@ -35,6 +35,10 @@ button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
 .card.past .body{display:none}
 .card.past.open .body{display:block}
 .card .toggle{font-size:13px;color:var(--accent)}
+.card h3.stop{font-size:16px;margin:16px 0 6px;padding-top:14px;border-top:1px solid var(--line)}
+.card h3.stop:first-child{margin-top:4px;padding-top:0;border-top:0}
+.card h3.stop .hrs{font-weight:600;font-size:13px;color:var(--muted);margin-left:4px}
+.visit{display:inline-block;background:#fff7e6;color:#7a4b06;border-radius:8px;padding:4px 10px;font-size:14px;margin:6px 0 2px}
 canvas{width:100%;height:190px;display:block;margin-top:8px}
 .chartnote{font-size:12px;color:var(--muted)}
 footer{color:var(--muted);font-size:13px;padding:8px 2px 30px}
@@ -63,28 +67,38 @@ a{color:var(--accent)}
 "use strict";
 /* Itinerary in order, from 2026_Holy_Land_-_FELLOWSHIP_TEAM_-_October_Itinerary.csv.
    Weather location can differ from where the group sleeps (e.g. Nov 2 is Nazareth,
-   sleeping in Tiberias; Nov 5 is Bethlehem, sleeping in Jerusalem). */
+   sleeping in Tiberias; Nov 5 is Bethlehem, sleeping in Jerusalem).
+   Days that move between very different climates list several stops, in order, each with
+   when/hours (local, inclusive) taken from the itinerary; the chart shades those hours. */
+const JLM={lat:31.7683,lon:35.2137}, TIB={lat:32.7959,lon:35.5309};
 const DAYS=[
- {date:"2026-10-28",label:"Wed, Oct 28",loc:"Jerusalem",lat:31.7683,lon:35.2137,desc:"Arrival day",sleep:"YMCA Three Arches, Jerusalem"},
- {date:"2026-10-29",label:"Thu, Oct 29",loc:"Jerusalem",lat:31.7683,lon:35.2137,desc:"Jerusalem Old City",sleep:"YMCA Three Arches, Jerusalem"},
- {date:"2026-10-30",label:"Fri, Oct 30",loc:"Jerusalem",lat:31.7683,lon:35.2137,desc:"Jerusalem Old City",sleep:"YMCA Three Arches, Jerusalem"},
- {date:"2026-10-31",label:"Sat, Oct 31",loc:"Tiberias",lat:32.7959,lon:35.5309,desc:"Travel Jerusalem → Tiberias (via Caesarea, Mount Carmel & Tel Megiddo)",sleep:"Leonardo Hotel Tiberias"},
- {date:"2026-11-01",label:"Sun, Nov 1",loc:"Tiberias · Sea of Galilee",lat:32.7959,lon:35.5309,desc:"Sea of Galilee Area",sleep:"Leonardo Hotel Tiberias"},
- {date:"2026-11-02",label:"Mon, Nov 2",loc:"Nazareth",lat:32.7021,lon:35.2978,desc:"Cana and Nazareth",sleep:"Leonardo Hotel Tiberias"},
- {date:"2026-11-03",label:"Tue, Nov 3",loc:"Ein Bokek · Dead Sea",lat:31.2006,lon:35.3625,desc:"Galilee → Dead Sea travel (via Caesarea Philippi) · Baptism Day (Qasr el Yahud)",sleep:"Ein Bokek"},
- {date:"2026-11-04",label:"Wed, Nov 4",loc:"Ein Bokek · Dead Sea",lat:31.2006,lon:35.3625,desc:"Dead Sea & Masada",sleep:"YMCA Three Arches, Jerusalem"},
- {date:"2026-11-05",label:"Thu, Nov 5",loc:"Bethlehem",lat:31.7054,lon:35.2024,desc:"Cave of the Patriarchs & Bethlehem",sleep:"YMCA Three Arches, Jerusalem"},
- {date:"2026-11-06",label:"Fri, Nov 6",loc:"Jerusalem",lat:31.7683,lon:35.2137,desc:"Flex Day @ Old City",sleep:"YMCA Three Arches, Jerusalem"},
- {date:"2026-11-07",label:"Sat, Nov 7",loc:"Tel Aviv–Jaffa",lat:32.0540,lon:34.7560,desc:"Garden Tomb & Israel Museum (Jerusalem), then Jaffa · departure evening (Ben Gurion Airport)",sleep:"Departure day"},
+ {date:"2026-10-28",label:"Wed, Oct 28",loc:"Jerusalem",stops:[JLM],desc:"Arrival day",sleep:"YMCA Three Arches, Jerusalem"},
+ {date:"2026-10-29",label:"Thu, Oct 29",loc:"Jerusalem",stops:[JLM],desc:"Jerusalem Old City",sleep:"YMCA Three Arches, Jerusalem"},
+ {date:"2026-10-30",label:"Fri, Oct 30",loc:"Jerusalem",stops:[JLM],desc:"Jerusalem Old City",sleep:"YMCA Three Arches, Jerusalem"},
+ {date:"2026-10-31",label:"Sat, Oct 31",loc:"Tiberias",stops:[TIB],desc:"Travel Jerusalem → Tiberias (via Caesarea, Mount Carmel & Tel Megiddo)",sleep:"Leonardo Hotel Tiberias"},
+ {date:"2026-11-01",label:"Sun, Nov 1",loc:"Tiberias · Sea of Galilee",stops:[TIB],desc:"Sea of Galilee Area",sleep:"Leonardo Hotel Tiberias"},
+ {date:"2026-11-02",label:"Mon, Nov 2",loc:"Nazareth",stops:[{lat:32.7021,lon:35.2978}],desc:"Cana and Nazareth",sleep:"Leonardo Hotel Tiberias"},
+ {date:"2026-11-03",label:"Tue, Nov 3",loc:"Caesarea Philippi → Qasr el Yahud",desc:"Galilee → Dead Sea travel · Baptism Day",sleep:"Ein Bokek",stops:[
+   {when:"Morning",loc:"Caesarea Philippi (Banias)",lat:33.2483,lon:35.6944,hours:[8,10]},
+   {when:"Afternoon",loc:"Qasr el Yahud · baptism",lat:31.8378,lon:35.5392,hours:[13,15]}]},
+ {date:"2026-11-04",label:"Wed, Nov 4",loc:"Dead Sea → Jerusalem",desc:"Masada sunrise hike, Dead Sea swim & Masada · back to Jerusalem",sleep:"YMCA Three Arches, Jerusalem",stops:[
+   {when:"Morning–midday",loc:"Masada & Dead Sea (Ein Bokek)",lat:31.2006,lon:35.3625,hours:[4,14]},
+   {when:"Evening",loc:"Jerusalem",lat:31.7683,lon:35.2137,hours:[17,21]}]},
+ {date:"2026-11-05",label:"Thu, Nov 5",loc:"Bethlehem",stops:[{lat:31.7054,lon:35.2024}],desc:"Cave of the Patriarchs & Bethlehem",sleep:"YMCA Three Arches, Jerusalem"},
+ {date:"2026-11-06",label:"Fri, Nov 6",loc:"Jerusalem",stops:[JLM],desc:"Flex Day @ Old City",sleep:"YMCA Three Arches, Jerusalem"},
+ {date:"2026-11-07",label:"Sat, Nov 7",loc:"Jerusalem → Jaffa",desc:"Garden Tomb & Israel Museum, then Jaffa · departure evening (Ben Gurion Airport)",sleep:"Departure day",stops:[
+   {when:"Daytime",loc:"Jerusalem · Garden Tomb & Israel Museum",lat:31.7683,lon:35.2137,hours:[8,15]},
+   {when:"Evening",loc:"Jaffa",lat:32.0540,lon:34.7560,hours:[16,19]}]},
 ];
 const WMO={0:"Clear sky",1:"Mainly clear",2:"Partly cloudy",3:"Overcast",45:"Fog",48:"Fog",51:"Light drizzle",53:"Drizzle",55:"Drizzle",56:"Freezing drizzle",57:"Freezing drizzle",61:"Light rain",63:"Rain",65:"Heavy rain",66:"Freezing rain",67:"Freezing rain",71:"Light snow",73:"Snow",75:"Heavy snow",77:"Snow grains",80:"Light showers",81:"Showers",82:"Violent showers",85:"Snow showers",86:"Snow showers",95:"Thunderstorm",96:"Thunderstorm with hail",99:"Thunderstorm with hail"};
 const EMOJI=c=>c===0?"☀️":c<=2?"🌤️":c===3?"☁️":c<=48?"🌫️":c<=57?"🌦️":c<=67?"🌧️":c<=77?"🌨️":c<=82?"🌧️":c<=86?"🌨️":"⛈️";
-let unit="F", DATA={}; /* DATA[date]={daily,hourly,tz}; filled from live Open-Meteo data */
+let unit="F", DATA={}; /* DATA[date+"|"+stopIndex]={daily,hourly,tz}; filled from live Open-Meteo data */
 const $=id=>document.getElementById(id);
 const conv=c=>unit==="F"?Math.round(c*9/5+32):Math.round(c);
+const hr12=h=>h===0?"12a":h<12?h+"a":h===12?"12p":(h-12)+"p";
 const todayIn=tz=>{try{return new Intl.DateTimeFormat("en-CA",{timeZone:tz,year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());}catch(e){return new Date().toISOString().slice(0,10);}};
-function isPast(d){const tz=(DATA[d.date]&&DATA[d.date].tz)||"Asia/Jerusalem";return d.date<todayIn(tz);}
-function isToday(d){const tz=(DATA[d.date]&&DATA[d.date].tz)||"Asia/Jerusalem";return d.date===todayIn(tz);}
+function isPast(d){return d.date<todayIn("Asia/Jerusalem");}
+function isToday(d){return d.date===todayIn("Asia/Jerusalem");}
 /* UTC offset (minutes) of tz at instant ms */
 function tzOffsetMin(tz,ms){const p={}; new Intl.DateTimeFormat("en-US",{timeZone:tz,hourCycle:"h23",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}).formatToParts(new Date(ms)).forEach(x=>{p[x.type]=x.value;}); return (Date.UTC(+p.year,p.month-1,+p.day,+p.hour,+p.minute)-ms)/60000;}
 /* Open-Meteo stamps the whole range with TODAY's offset (apiOff seconds), so dates past a DST change
@@ -97,7 +111,7 @@ async function load(){
  $("err").style.display="none";
  render();
  $("status").textContent="Loading live weather from Open-Meteo…";
- const locs={}; DAYS.forEach(d=>{locs[d.lat+","+d.lon]=d;});
+ const locs={}; DAYS.forEach(d=>d.stops.forEach(s=>{locs[s.lat+","+s.lon]=s;}));
  const pts=Object.values(locs);
  const fresh={};
  try{
@@ -119,17 +133,15 @@ async function load(){
    const d=pts[n]; if(!d||!j||!j.daily) return;
    const tz=j.timezone, off=j.utc_offset_seconds||0, fix=s=>s?fixLocal(s,tz,off):"";
    const htimes=(j.hourly.time||[]).map(fix);
+   const key=d.lat+","+d.lon;
    (j.daily.time||[]).forEach((date,i)=>{
-     const key=d.lat+","+d.lon;
-     DAYS.filter(x=>x.lat+","+x.lon===key&&x.date===date).forEach(x=>{
-       const hrs=[]; htimes.forEach((t,k)=>{ if(t.slice(0,10)===date) hrs.push({h:+t.slice(11,13),temp:j.hourly.temperature_2m[k],rain:j.hourly.precipitation_probability[k]}); });
-       fresh[date+key]={tz:tz,daily:{hi:j.daily.temperature_2m_max[i],lo:j.daily.temperature_2m_min[i],rain:j.daily.precipitation_probability_max[i],code:j.daily.weather_code[i],wind:j.daily.wind_speed_10m_max[i],sunrise:fix(j.daily.sunrise[i]).slice(11,16),sunset:fix(j.daily.sunset[i]).slice(11,16)},hourly:hrs};
-     });
+     const hrs=[]; htimes.forEach((t,k)=>{ if(t.slice(0,10)===date) hrs.push({h:+t.slice(11,13),temp:j.hourly.temperature_2m[k],rain:j.hourly.precipitation_probability[k]}); });
+     fresh[date+key]={tz:tz,daily:{hi:j.daily.temperature_2m_max[i],lo:j.daily.temperature_2m_min[i],rain:j.daily.precipitation_probability_max[i],code:j.daily.weather_code[i],wind:j.daily.wind_speed_10m_max[i],sunrise:fix(j.daily.sunrise[i]).slice(11,16),sunset:fix(j.daily.sunset[i]).slice(11,16)},hourly:hrs};
    });
   });
-  /* re-key by date (each date has one weather location) */
-  const byDate={}; DAYS.forEach(d=>{const v=fresh[d.date+d.lat+","+d.lon]; if(v) byDate[d.date]=v;});
-  if(!Object.keys(fresh).length) throw new Error("no live data returned");
+  /* re-key by date + stop index */
+  const byDate={}; DAYS.forEach(d=>d.stops.forEach((s,k)=>{const v=fresh[d.date+s.lat+","+s.lon]; if(v) byDate[d.date+"|"+k]=v;}));
+  if(!Object.keys(byDate).length) throw new Error("no live data returned");
   DATA=byDate;
   render();
   $("status").textContent="Updated "+new Date().toLocaleString()+" · Source: Open-Meteo (live)";
@@ -140,36 +152,54 @@ async function load(){
    $("err").style.display="block"; $("status").textContent="Live weather unavailable";
  }
 }
-function entry(d){return DATA[d.date];}
+function entry(d,k){return DATA[d.date+"|"+(k||0)];}
+function tileWeather(d){
+ const es=d.stops.map((s,k)=>entry(d,k));
+ if(!es.some(Boolean)) return "<div class='c'>No forecast yet</div>";
+ if(es.length===1){const e=es[0]; return "<div class='t'>"+EMOJI(e.daily.code)+" "+conv(e.daily.hi)+"° / "+conv(e.daily.lo)+"°</div><div class='c'>"+(WMO[e.daily.code]||"")+(e.daily.rain!=null?" · 💧 "+e.daily.rain+"%":"")+"</div>";}
+ /* several stops: each stop's high, in order, and the wettest stop's rain chance */
+ const rain=Math.max.apply(null,es.map(e=>e&&e.daily.rain!=null?e.daily.rain:-1));
+ return "<div class='t'>"+es.map(e=>e?conv(e.daily.hi)+"°":"—").join(" → ")+"</div><div class='c'>"+d.stops.length+" stops"+(rain>=0?" · 💧 "+rain+"%":"")+"</div>";
+}
 function render(){
  const strip=$("strip"), cards=$("cards"); strip.innerHTML=""; cards.innerHTML="";
  let nextMarked=false;
  DAYS.forEach((d,i)=>{
-  const e=entry(d), past=isPast(d), today=isToday(d);
+  const past=isPast(d), today=isToday(d);
   const t=document.createElement("button"); t.type="button"; t.className="tile"+(past?" past":"")+(today?" today":"");
-  t.innerHTML="<div class='d'>"+d.label+"</div><div class='loc' title='"+d.loc+"'>"+d.loc+"</div>"+
-   (e?"<div class='t'>"+EMOJI(e.daily.code)+" "+conv(e.daily.hi)+"° / "+conv(e.daily.lo)+"°</div><div class='c'>"+(WMO[e.daily.code]||"")+(e.daily.rain!=null?" · 💧 "+e.daily.rain+"%":"")+"</div>":"<div class='c'>No forecast yet</div>");
+  t.innerHTML="<div class='d'>"+d.label+"</div><div class='loc' title='"+d.loc+"'>"+d.loc+"</div>"+tileWeather(d);
   t.onclick=()=>{const el=$("day"+i); el.scrollIntoView({behavior:"smooth"}); if(el.classList.contains("past")) el.classList.add("open");};
   strip.appendChild(t);
   const c=document.createElement("section"); c.className="card"+(past?" past":""); c.id="day"+i;
   let badge=""; if(today) badge="<span class='badge'>Today</span>"; else if(!past&&!nextMarked){badge="<span class='badge'>Next up</span>"; nextMarked=true;}
   c.innerHTML="<h2>"+d.label+" — "+d.loc+badge+"</h2><p class='sub'>"+d.desc+" · Sleep: "+d.sleep+"</p>"+
    (past?"<span class='toggle'>Past day — tap heading to expand / collapse</span>":"")+
-   "<div class='body'>"+(e?bodyHTML(d,e):"<p class='chartnote'>Forecast not available yet for this date. Open-Meteo publishes about 16 days ahead — it will appear automatically as the date gets closer.</p>")+"</div>";
+   "<div class='body'>"+d.stops.map((s,k)=>stopHTML(d,s,k)).join("")+"</div>";
   c.querySelector("h2").style.cursor=past?"pointer":"default";
   c.querySelector("h2").onclick=()=>{if(c.classList.contains("past")){c.classList.toggle("open"); drawAll();}};
   cards.appendChild(c);
  });
  drawAll();
 }
-function bodyHTML(d,e){
- const dl=e.daily;
- return "<div><span class='big'>"+conv(dl.hi)+"° <span style='color:var(--muted);font-size:20px'>/ "+conv(dl.lo)+"°</span></span> &nbsp;"+EMOJI(dl.code)+" "+(WMO[dl.code]||"")+"</div>"+
- "<div class='meta'><span>💧 Rain chance (max): <b>"+(dl.rain==null?"—":dl.rain+"%")+"</b></span><span>💨 Wind up to: <b>"+(dl.wind==null?"—":Math.round(dl.wind)+" km/h")+"</b></span><span>🌅 Sunrise: <b>"+(dl.sunrise||"—")+"</b></span><span>🌇 Sunset: <b>"+(dl.sunset||"—")+"</b></span></div>"+
- "<canvas data-date='"+d.date+"'></canvas>"+
- "<div class='chartnote'>Hour by hour, 12a–11p local time at "+d.loc+": blue bars = rain probability (right axis, 0–100%), orange line = temperature (left axis, °"+unit+"). Wettest hour: <b>"+wettest(e)+"</b></div>";
+function stopHTML(d,s,k){
+ const e=entry(d,k), loc=s.loc||d.loc, multi=d.stops.length>1;
+ const head=multi?"<h3 class='stop'>"+s.when+" · "+loc+" <span class='hrs'>"+hr12(s.hours[0])+"–"+hr12(s.hours[1])+"</span></h3>":"";
+ if(!e) return head+"<p class='chartnote'>Forecast not available yet for this date. Open-Meteo publishes about 16 days ahead — it will appear automatically as the date gets closer.</p>";
+ return head+bodyHTML(d,s,k,e,loc);
 }
-function wettest(e){let best=null; e.hourly.forEach(h=>{if(h.rain!=null&&(!best||h.rain>best.rain)) best=h;}); if(!best||best.rain==null) return "—"; const hr=best.h===0?"12a":best.h<12?best.h+"a":best.h===12?"12p":(best.h-12)+"p"; return best.rain+"% around "+hr;}
+function bodyHTML(d,s,k,e,loc){
+ const dl=e.daily;
+ /* for a timed stop, also summarize just the hours the group is there */
+ let visit="";
+ if(s.hours){const v=e.hourly.filter(h=>h.h>=s.hours[0]&&h.h<=s.hours[1]);
+  if(v.length){const ts=v.map(h=>conv(h.temp)), rs=v.map(h=>h.rain||0);
+   visit="<div class='visit'>While you're there ("+hr12(s.hours[0])+"–"+hr12(s.hours[1])+"): <b>"+Math.min.apply(null,ts)+"–"+Math.max.apply(null,ts)+"°</b> · 💧 up to <b>"+Math.max.apply(null,rs)+"%</b></div>";}}
+ return "<div><span class='big'>"+conv(dl.hi)+"° <span style='color:var(--muted);font-size:20px'>/ "+conv(dl.lo)+"°</span></span> &nbsp;"+EMOJI(dl.code)+" "+(WMO[dl.code]||"")+"</div>"+visit+
+ "<div class='meta'><span>💧 Rain chance (max): <b>"+(dl.rain==null?"—":dl.rain+"%")+"</b></span><span>💨 Wind up to: <b>"+(dl.wind==null?"—":Math.round(dl.wind)+" km/h")+"</b></span><span>🌅 Sunrise: <b>"+(dl.sunrise||"—")+"</b></span><span>🌇 Sunset: <b>"+(dl.sunset||"—")+"</b></span></div>"+
+ "<canvas data-key='"+d.date+"|"+k+"'"+(s.hours?" data-hours='"+s.hours.join(",")+"'":"")+"></canvas>"+
+ "<div class='chartnote'>Hour by hour, 12a–11p local time at "+loc+": blue bars = rain probability (right axis, 0–100%), orange line = temperature (left axis, °"+unit+")"+(s.hours?", shaded = when you're there":"")+". Wettest hour: <b>"+wettest(e)+"</b></div>";
+}
+function wettest(e){let best=null; e.hourly.forEach(h=>{if(h.rain!=null&&(!best||h.rain>best.rain)) best=h;}); if(!best||best.rain==null) return "—"; return best.rain+"% around "+hr12(best.h);}
 </script>
 <script>
 "use strict";
@@ -178,10 +208,10 @@ function wettest(e){let best=null; e.hourly.forEach(h=>{if(h.rain!=null&&(!best|
 const RO=typeof ResizeObserver!=="undefined"?new ResizeObserver(es=>es.forEach(en=>drawChart(en.target))):null;
 function drawAll(){
  if(RO) RO.disconnect();
- document.querySelectorAll("canvas[data-date]").forEach(cv=>{ if(RO) RO.observe(cv); else if(cv.offsetParent!==null) drawChart(cv); });
+ document.querySelectorAll("canvas[data-key]").forEach(cv=>{ if(RO) RO.observe(cv); else if(cv.offsetParent!==null) drawChart(cv); });
 }
 function drawChart(cv){
- const e=DATA[cv.dataset.date]; if(!e||!e.hourly.length) return;
+ const e=DATA[cv.dataset.key]; if(!e||!e.hourly.length) return;
  /* size the backing store to the displayed size × devicePixelRatio so text isn't stretched or blurry */
  const box=cv.getBoundingClientRect(), dpr=window.devicePixelRatio||1, W=box.width, H=box.height;
  if(!W||!H) return; /* hidden (collapsed past day) */
@@ -199,8 +229,11 @@ function drawChart(cv){
  for(let i=0;i<=4;i++){const y=Math.round(T+ih-ih*i/4)+.5; ctx.beginPath(); ctx.moveTo(L,y); ctx.lineTo(W-R,y); ctx.stroke(); ctx.fillText((mn+step*i)+"°",L-6,y);}
  /* right (rain %) labels */
  ctx.textAlign="left"; for(let i=0;i<=4;i++){const y=Math.round(T+ih-ih*i/4)+.5; ctx.fillText((i*25)+"%",W-R+6,y);}
+ const bw=iw/24;
+ /* shade the hours the group is at this stop */
+ if(cv.dataset.hours){const hs=cv.dataset.hours.split(",").map(Number); ctx.fillStyle="rgba(245,158,11,.12)"; ctx.fillRect(L+hs[0]*bw, T, (hs[1]-hs[0]+1)*bw, ih);}
  /* rain bars */
- const bw=iw/24; ctx.fillStyle="#3b82f6";
+ ctx.fillStyle="#3b82f6";
  const gap=Math.max(1,Math.min(3,bw*.15));
  e.hourly.forEach(h=>{ if(h.rain==null) return; const bh=ih*h.rain/100; ctx.globalAlpha=.75; ctx.fillRect(L+h.h*bw+gap, T+ih-bh, bw-2*gap, bh); ctx.globalAlpha=1;});
  /* x labels */
