@@ -66,8 +66,8 @@ a{color:var(--accent)}
 <script>
 "use strict";
 /* Itinerary in order, from 2026_Holy_Land_-_FELLOWSHIP_TEAM_-_October_Itinerary.csv.
-   Weather location can differ from where the group sleeps (e.g. Nov 2 is Nazareth,
-   sleeping in Tiberias; Nov 5 is Bethlehem, sleeping in Jerusalem).
+   Weather location can differ from where the group sleeps (e.g. Nov 5 is Bethlehem,
+   sleeping in Jerusalem).
    Days that move between very different climates list several stops, in order, each with
    when/hours (local, inclusive) taken from the itinerary; the chart shades those hours. */
 const JLM={lat:31.7683,lon:35.2137}, TIB={lat:32.7959,lon:35.5309};
@@ -75,12 +75,19 @@ const DAYS=[
  {date:"2026-10-28",label:"Wed, Oct 28",loc:"Jerusalem",stops:[JLM],desc:"Arrival day",sleep:"YMCA Three Arches, Jerusalem"},
  {date:"2026-10-29",label:"Thu, Oct 29",loc:"Jerusalem",stops:[JLM],desc:"Jerusalem Old City",sleep:"YMCA Three Arches, Jerusalem"},
  {date:"2026-10-30",label:"Fri, Oct 30",loc:"Jerusalem",stops:[JLM],desc:"Jerusalem Old City",sleep:"YMCA Three Arches, Jerusalem"},
- {date:"2026-10-31",label:"Sat, Oct 31",loc:"Tiberias",stops:[TIB],desc:"Travel Jerusalem → Tiberias (via Caesarea, Mount Carmel & Tel Megiddo)",sleep:"Leonardo Hotel Tiberias"},
+ {date:"2026-10-31",label:"Sat, Oct 31",loc:"Caesarea → Tiberias",desc:"Travel Jerusalem → Tiberias (via Caesarea, Mount Carmel & Tel Megiddo)",sleep:"Leonardo Hotel Tiberias",stops:[
+   {when:"Morning",loc:"Caesarea National Park",lat:32.5000,lon:34.8917,hours:[10,11]},
+   {when:"Midday",loc:"Mount Carmel",lat:32.6722,lon:35.0883,hours:[13,14]},
+   {when:"Afternoon",loc:"Tel Megiddo",lat:32.5847,lon:35.1844,hours:[15,16]},
+   {when:"Evening",loc:"Tiberias",lat:TIB.lat,lon:TIB.lon,hours:[17,21]}]},
  {date:"2026-11-01",label:"Sun, Nov 1",loc:"Tiberias · Sea of Galilee",stops:[TIB],desc:"Sea of Galilee Area",sleep:"Leonardo Hotel Tiberias"},
- {date:"2026-11-02",label:"Mon, Nov 2",loc:"Nazareth",stops:[{lat:32.7021,lon:35.2978}],desc:"Cana and Nazareth",sleep:"Leonardo Hotel Tiberias"},
- {date:"2026-11-03",label:"Tue, Nov 3",loc:"Caesarea Philippi → Qasr el Yahud",desc:"Galilee → Dead Sea travel · Baptism Day",sleep:"Ein Bokek",stops:[
+ {date:"2026-11-02",label:"Mon, Nov 2",loc:"Nazareth → Tiberias",desc:"Cana and Nazareth",sleep:"Leonardo Hotel Tiberias",stops:[
+   {when:"Daytime",loc:"Cana & Nazareth",lat:32.7021,lon:35.2978,hours:[9,15]},
+   {when:"Evening",loc:"Tiberias",lat:TIB.lat,lon:TIB.lon,hours:[18,21]}]},
+ {date:"2026-11-03",label:"Tue, Nov 3",loc:"Caesarea Philippi → Dead Sea",desc:"Galilee → Dead Sea travel · Baptism Day",sleep:"Ein Bokek",stops:[
    {when:"Morning",loc:"Caesarea Philippi (Banias)",lat:33.2483,lon:35.6944,hours:[8,10]},
-   {when:"Afternoon",loc:"Qasr el Yahud · baptism",lat:31.8378,lon:35.5392,hours:[13,15]}]},
+   {when:"Afternoon",loc:"Qasr el Yahud · baptism",lat:31.8378,lon:35.5392,hours:[13,15]},
+   {when:"Evening",loc:"Dead Sea hotel (Ein Bokek)",lat:31.2006,lon:35.3625,hours:[16,20]}]},
  {date:"2026-11-04",label:"Wed, Nov 4",loc:"Dead Sea → Jerusalem",desc:"Masada sunrise hike, Dead Sea swim & Masada · back to Jerusalem",sleep:"YMCA Three Arches, Jerusalem",stops:[
    {when:"Morning–midday",loc:"Masada & Dead Sea (Ein Bokek)",lat:31.2006,lon:35.3625,hours:[4,14]},
    {when:"Evening",loc:"Jerusalem",lat:31.7683,lon:35.2137,hours:[17,21]}]},
