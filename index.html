@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Holy Land Weather — Oct 28 to Nov 8, 2026</title>
-<meta name="description" content="Weather for each stop on the Holy Land Fellowship Team itinerary, Oct 28 – Nov 8, 2026. Live from Open-Meteo.">
+<title>Holy Land Weather — Oct 28 to Nov 7, 2026</title>
+<meta name="description" content="Weather for each stop on the Holy Land Fellowship Team itinerary, Oct 28 – Nov 7, 2026. Live from Open-Meteo.">
 <style>
 :root{--bg:#0f172a;--card:#ffffff;--ink:#17202b;--muted:#667085;--line:#e4e7ec;--accent:#2563eb;--rain:#3b82f6;--temp:#f59e0b;--past:#9aa3af}
 *{box-sizing:border-box}
@@ -45,7 +45,7 @@ a{color:var(--accent)}
 <body>
 <header><div class="wrap" style="padding:0">
 <h1>🌤️ Holy Land Weather</h1>
-<p>Fellowship Team itinerary · Wed Oct 28 – Sun Nov 8, 2026 · in itinerary order</p>
+<p>Fellowship Team itinerary · Wed Oct 28 – Sat Nov 7, 2026 · in itinerary order</p>
 </div></header>
 <div class="wrap">
 <div class="controls">
@@ -76,7 +76,6 @@ const DAYS=[
  {date:"2026-11-05",label:"Thu, Nov 5",loc:"Bethlehem",lat:31.7054,lon:35.2024,desc:"Cave of the Patriarchs & Bethlehem",sleep:"YMCA Three Arches, Jerusalem"},
  {date:"2026-11-06",label:"Fri, Nov 6",loc:"Jerusalem",lat:31.7683,lon:35.2137,desc:"Flex Day @ Old City",sleep:"YMCA Three Arches, Jerusalem"},
  {date:"2026-11-07",label:"Sat, Nov 7",loc:"Tel Aviv–Jaffa",lat:32.0540,lon:34.7560,desc:"Garden Tomb & Israel Museum (Jerusalem), then Jaffa · departure evening (Ben Gurion Airport)",sleep:"Departure day"},
- {date:"2026-11-08",label:"Sun, Nov 8",loc:"San Francisco",lat:37.7749,lon:-122.4194,desc:"Return to SFO (Flight LY 49, departs TLV 1:05 AM)",sleep:"Home"}
 ];
 const WMO={0:"Clear sky",1:"Mainly clear",2:"Partly cloudy",3:"Overcast",45:"Fog",48:"Fog",51:"Light drizzle",53:"Drizzle",55:"Drizzle",56:"Freezing drizzle",57:"Freezing drizzle",61:"Light rain",63:"Rain",65:"Heavy rain",66:"Freezing rain",67:"Freezing rain",71:"Light snow",73:"Snow",75:"Heavy snow",77:"Snow grains",80:"Light showers",81:"Showers",82:"Violent showers",85:"Snow showers",86:"Snow showers",95:"Thunderstorm",96:"Thunderstorm with hail",99:"Thunderstorm with hail"};
 const EMOJI=c=>c===0?"☀️":c<=2?"🌤️":c===3?"☁️":c<=48?"🌫️":c<=57?"🌦️":c<=67?"🌧️":c<=77?"🌨️":c<=82?"🌧️":c<=86?"🌨️":"⛈️";
@@ -84,8 +83,8 @@ let unit="F", DATA={}; /* DATA[date]={daily,hourly,tz}; filled from live Open-Me
 const $=id=>document.getElementById(id);
 const conv=c=>unit==="F"?Math.round(c*9/5+32):Math.round(c);
 const todayIn=tz=>{try{return new Intl.DateTimeFormat("en-CA",{timeZone:tz,year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());}catch(e){return new Date().toISOString().slice(0,10);}};
-function isPast(d){const tz=(DATA[d.date]&&DATA[d.date].tz)||(d.loc==="San Francisco"?"America/Los_Angeles":"Asia/Jerusalem");return d.date<todayIn(tz);}
-function isToday(d){const tz=(DATA[d.date]&&DATA[d.date].tz)||(d.loc==="San Francisco"?"America/Los_Angeles":"Asia/Jerusalem");return d.date===todayIn(tz);}
+function isPast(d){const tz=(DATA[d.date]&&DATA[d.date].tz)||"Asia/Jerusalem";return d.date<todayIn(tz);}
+function isToday(d){const tz=(DATA[d.date]&&DATA[d.date].tz)||"Asia/Jerusalem";return d.date===todayIn(tz);}
 /* UTC offset (minutes) of tz at instant ms */
 function tzOffsetMin(tz,ms){const p={}; new Intl.DateTimeFormat("en-US",{timeZone:tz,hourCycle:"h23",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}).formatToParts(new Date(ms)).forEach(x=>{p[x.type]=x.value;}); return (Date.UTC(+p.year,p.month-1,+p.day,+p.hour,+p.minute)-ms)/60000;}
 /* Open-Meteo stamps the whole range with TODAY's offset (apiOff seconds), so dates past a DST change
@@ -107,7 +106,7 @@ async function load(){
      requests", and a single failure discarded every location. */
   const u="https://api.open-meteo.com/v1/forecast?latitude="+pts.map(p=>p.lat).join(",")+"&longitude="+pts.map(p=>p.lon).join(",")+
     "&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code,wind_speed_10m_max,sunrise,sunset"+
-    "&hourly=temperature_2m,precipitation_probability&timezone=auto&start_date=2026-10-28&end_date=2026-11-08";
+    "&hourly=temperature_2m,precipitation_probability&timezone=auto&start_date=2026-10-28&end_date=2026-11-07";
   let r;
   for(let attempt=0;attempt<3;attempt++){
    r=await fetch(u,{cache:"no-store"});
