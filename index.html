@@ -39,7 +39,8 @@ button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
 .card h3.stop:first-child{margin-top:4px;padding-top:0;border-top:0}
 .card h3.stop .hrs{font-weight:600;font-size:13px;color:var(--muted);margin-left:4px}
 .visit{display:inline-block;background:#fff7e6;color:#7a4b06;border-radius:8px;padding:4px 10px;font-size:14px;margin:6px 0 2px}
-canvas{width:100%;height:190px;display:block;margin-top:8px}
+canvas{width:100%;height:190px;display:block;margin-top:8px;cursor:crosshair;touch-action:pan-y}
+#tip{position:fixed;z-index:10;pointer-events:none;display:none;background:#17202b;color:#fff;font-size:12px;line-height:1.45;padding:6px 9px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.18);white-space:nowrap}
 .chartnote{font-size:12px;color:var(--muted)}
 footer{color:var(--muted);font-size:13px;padding:8px 2px 30px}
 a{color:var(--accent)}
@@ -273,7 +274,32 @@ function drawChart(cv){
  e.hourly.forEach((h,i)=>{const x=L+h.h*bw+bw/2, y=T+ih-(temps[i]-mn)/(mx-mn)*ih; i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}); ctx.stroke();
  ctx.fillStyle="#b45309"; e.hourly.forEach((h,i)=>{ if(h.h%3===0){const x=L+h.h*bw+bw/2, y=T+ih-(temps[i]-mn)/(mx-mn)*ih; ctx.beginPath(); ctx.arc(x,y,3,0,7); ctx.fill();}});
  ctx.lineWidth=1;
+ /* hovered hour: guide line + emphasized point */
+ const hi=e.hourly.findIndex(h=>h.h===cv._hover);
+ if(hi>=0){const x=Math.round(L+cv._hover*bw+bw/2)+.5, y=T+ih-(temps[hi]-mn)/(mx-mn)*ih;
+  ctx.strokeStyle="rgba(23,32,43,.35)"; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(x,T); ctx.lineTo(x,T+ih); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle="#fff"; ctx.strokeStyle="#b45309"; ctx.lineWidth=2.5; ctx.beginPath(); ctx.arc(x,y,5,0,7); ctx.fill(); ctx.stroke(); ctx.lineWidth=1;}
 }
+/* hover (or tap) a chart to read the exact temp and rain chance for that hour; L/R match drawChart's margins */
+const tip=document.createElement("div"); tip.id="tip"; document.body.appendChild(tip);
+function hideTip(cv){tip.style.display="none"; if(cv&&cv._hover!=null){cv._hover=null; drawChart(cv);}}
+function showTip(cv,ev){
+ const e=DATA[cv.dataset.key]; if(!e||!e.hourly.length) return;
+ const box=cv.getBoundingClientRect(), L=40, R=42, bw=(box.width-L-R)/24;
+ const h=Math.floor((ev.clientX-box.left-L)/bw), p=e.hourly.find(x=>x.h===h);
+ if(!p){hideTip(cv); return;}
+ if(cv._hover!==h){cv._hover=h; drawChart(cv);}
+ tip.innerHTML="<b>"+hr12(h)+"</b><br>🌡️ "+(p.temp==null?"—":(unit==="F"?(p.temp*9/5+32).toFixed(1):p.temp.toFixed(1))+"°"+unit)+"<br>💧 "+(p.rain==null?"—":p.rain+"%");
+ tip.style.display="block";
+ const tw=tip.offsetWidth, th=tip.offsetHeight;
+ let x=ev.clientX+12; if(x+tw>window.innerWidth-8) x=ev.clientX-tw-12;
+ let y=ev.clientY-th-12; if(y<8) y=ev.clientY+16;
+ tip.style.left=Math.max(8,x)+"px"; tip.style.top=y+"px";
+}
+document.addEventListener("pointermove",ev=>{const cv=ev.target.closest&&ev.target.closest("canvas[data-key]"); if(cv) showTip(cv,ev);});
+document.addEventListener("pointerdown",ev=>{const cv=ev.target.closest&&ev.target.closest("canvas[data-key]"); document.querySelectorAll("canvas[data-key]").forEach(c=>{if(c!==cv&&c._hover!=null) hideTip(c);}); if(cv) showTip(cv,ev); else hideTip();});
+document.addEventListener("pointerout",ev=>{const cv=ev.target.closest&&ev.target.closest("canvas[data-key]"); if(cv&&ev.pointerType==="mouse") hideTip(cv);});
+window.addEventListener("scroll",()=>{if(tip.style.display==="block") document.querySelectorAll("canvas[data-key]").forEach(c=>hideTip(c));},{passive:true});
 $("btnF").onclick=()=>{unit="F"; $("btnF").classList.add("active"); $("btnC").classList.remove("active"); render();};
 $("btnC").onclick=()=>{unit="C"; $("btnC").classList.add("active"); $("btnF").classList.remove("active"); render();};
 $("btnRefresh").onclick=load;
