@@ -233,6 +233,14 @@ function drawAll(){
  if(RO) RO.disconnect();
  document.querySelectorAll("canvas[data-key]").forEach(cv=>{ if(RO) RO.observe(cv); else if(cv.offsetParent!==null) drawChart(cv); });
 }
+/* one temp range across all loaded forecasts, in 4 whole-degree steps so gridlines line up with 0/25/50/75/100% */
+function tempScale(toU){
+ let tmin=Infinity, tmax=-Infinity;
+ Object.values(DATA).forEach(e=>e.hourly.forEach(h=>{ if(h.temp==null) return; const t=toU(h.temp); if(t<tmin) tmin=t; if(t>tmax) tmax=t; }));
+ const step=[1,2,3,4,5,10,15,20].find(s=>Math.floor(tmin/s)*s+4*s>=tmax)||25;
+ const mn=Math.floor(tmin/step)*step;
+ return {mn:mn, mx:mn+4*step, step:step};
+}
 function drawChart(cv){
  const e=DATA[cv.dataset.key]; if(!e||!e.hourly.length) return;
  /* size the backing store to the displayed size × devicePixelRatio so text isn't stretched or blurry */
@@ -242,11 +250,9 @@ function drawChart(cv){
  const ctx=cv.getContext("2d"), L=40, R=42, T=10, B=24, iw=W-L-R, ih=H-T-B;
  ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,W,H);
  ctx.font="12px -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif"; ctx.textBaseline="middle";
- /* unrounded temps for a smooth line; 4 whole-degree steps so temp gridlines line up with 0/25/50/75/100% */
- const temps=e.hourly.map(h=>unit==="F"?h.temp*9/5+32:h.temp);
- const tmin=Math.min.apply(null,temps), tmax=Math.max.apply(null,temps);
- let step=[1,2,3,4,5,10,15,20].find(s=>Math.floor(tmin/s)*s+4*s>=tmax)||25;
- const mn=Math.floor(tmin/step)*step, mx=mn+4*step;
+ /* unrounded temps for a smooth line; the temp axis is shared by every chart so they compare at a glance */
+ const toU=t=>unit==="F"?t*9/5+32:t, temps=e.hourly.map(h=>toU(h.temp));
+ const sc=tempScale(toU), mn=sc.mn, mx=sc.mx, step=sc.step;
  /* gridlines + left (temp) labels */
  ctx.strokeStyle="#e4e7ec"; ctx.fillStyle="#667085"; ctx.textAlign="right";
  for(let i=0;i<=4;i++){const y=Math.round(T+ih-ih*i/4)+.5; ctx.beginPath(); ctx.moveTo(L,y); ctx.lineTo(W-R,y); ctx.stroke(); ctx.fillText((mn+step*i)+"°",L-6,y);}
